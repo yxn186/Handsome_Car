@@ -1,0 +1,61 @@
+# -----------------------------
+# Build output
+# -----------------------------
+build/
+cmake-build-*/
+out/
+Debug/
+Release/
+RelWithDebInfo/
+MinSizeRel/
+
+# CMake / Ninja generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+build.ninja
+.ninja_deps
+.ninja_log
+CTestTestfile.cmake
+Testing/
+install_manifest.txt
+
+# -----------------------------
+# Toolchain / binary artifacts
+# -----------------------------
+*.o
+*.obj
+*.d
+*.a
+*.lib
+*.elf
+*.axf
+*.map
+*.lst
+*.bin
+*.hex
+*.srec
+
+# -----------------------------
+# Logs and temporary files
+# -----------------------------
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# STM32CubeMX scratch/cache
+mx.scratch
+
+# -----------------------------
+# IDE / editor local files
+# -----------------------------
+.vscode/
+.idea/
+.project
+.cproject
+
+# Eclipse/CubeIDE local settings
+.settings/

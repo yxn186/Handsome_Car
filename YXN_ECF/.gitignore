@@ -1,0 +1,31 @@
+# Build output
+build/
+out/
+cmake-build-*/
+
+# Compiled files
+*.o
+*.obj
+*.a
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+*.d
+
+# IDE temporary files
+.idea/
+.vscode/
+.cache/
+.clangd/
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+*~
+
+# Operating system
+Thumbs.db
+.DS_Store

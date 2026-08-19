@@ -10,7 +10,8 @@
 
 # Application source files
 set(USER_APP_SOURCES
-    Application/App_Chassis.cpp
+    Application/App_Chassis/App_Chassis.cpp
+    Application/App_Remote/App_Remote.cpp
 )
 
 # FreeRTOS task source files

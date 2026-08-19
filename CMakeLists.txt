@@ -79,6 +79,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${YXN_ECF_DIR}/algorithm/PID/PID.cpp
     ${YXN_ECF_DIR}/algorithm/SlopePlaning/SlopePlaning.cpp
 
+    # Chassis calculation
+    ${YXN_ECF_DIR}/module/Chassis_Calculation/DifferentialWheel_Chassis_Calculation/DifferentialWheel_Chassis_Calculation.cpp
+
     # STM32F407 uses bxCAN. Do not add the H7 FDCAN implementation here.
     ${YXN_ECF_DIR}/bsp/CAN/bxCAN/bsp_can.c
     ${YXN_ECF_DIR}/bsp/CAN/bxCAN/bxcan_adapter.cpp
@@ -113,6 +116,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${YXN_ECF_DIR}/algorithm/MyMath
     ${YXN_ECF_DIR}/algorithm/PID
     ${YXN_ECF_DIR}/algorithm/SlopePlaning
+
+    # Chassis calculation
+    ${YXN_ECF_DIR}/module/Chassis_Calculation/DifferentialWheel_Chassis_Calculation
 
     # bxCAN and BSP
     ${YXN_ECF_DIR}/bsp/CAN

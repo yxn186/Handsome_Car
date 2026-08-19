@@ -10,8 +10,7 @@
 
 # Application source files
 set(USER_APP_SOURCES
-    # Example:
-    # Application/App_Car/App_Car.c
+    Application/App_Chassis.cpp
 )
 
 # FreeRTOS task source files

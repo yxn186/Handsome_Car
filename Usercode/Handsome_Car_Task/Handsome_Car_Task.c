@@ -2,7 +2,7 @@
 /**
   ******************************************************************************
   * @file    Handsome_Car_Task.c
-  * @brief   Task层
+  * @brief   Handsome_Car任务层
   * @author  yxn
   ******************************************************************************
   */
@@ -11,26 +11,31 @@
 #include "Handsome_Car_Task.h"
 
 #include "cmsis_os2.h"
+#include "Application/App_Chassis.h"
 
 /**
- * @brief Project initialization task.
+ * @brief 工程初始化任务
  *
- * Add application and module initialization before osThreadExit(). The strong
- * definition in this file overrides CubeMX's weak implementation.
+ * 本文件中的强定义覆盖CubeMX生成的弱定义。底盘初始化完成后退出本任务。
+ *
+ * @param argument FreeRTOS任务参数，本任务不使用
  */
 void InitTaskFunction(void *argument)
 {
     (void)argument;
 
-    /* Add project initialization here. */
+    //初始化差速底盘、四个M3508、PID和CAN2接收
+    App_Chassis_Init();
 
     osThreadExit();
 }
 
 /**
- * @brief Project main periodic task.
+ * @brief 工程主周期任务
  *
- * The generated CubeMX symbol is intentionally spelled MainTaskFunction.
+ * 每1ms刷新一次底盘反馈、Debug模式和电机控制输出。
+ *
+ * @param argument FreeRTOS任务参数，本任务不使用
  */
 void MainTaskFunction(void *argument)
 {
@@ -38,7 +43,7 @@ void MainTaskFunction(void *argument)
 
     for (;;)
     {
-        /* Add the 1 ms project update path here. */
+        App_Chassis_Update();
         osDelay(1U);
     }
 }

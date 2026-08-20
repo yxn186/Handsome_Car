@@ -70,6 +70,7 @@ const osThreadAttr_t MainTask_attributes = {
 void InitTaskFunction(void *argument);
 void MainTaskFunction(void *argument);
 
+extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /**
@@ -124,6 +125,8 @@ void MX_FREERTOS_Init(void) {
 /* USER CODE END Header_InitTaskFunction */
 __weak void InitTaskFunction(void *argument)
 {
+  /* init code for USB_DEVICE */
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN InitTaskFunction */
   /* Infinite loop */
   for(;;)

@@ -12,6 +12,8 @@
 
 #include <stdbool.h>
 #include "cmsis_os2.h"
+#include "usb_device.h"
+#include "bsp_usb.h"
 #include "Application/App_Chassis/App_Chassis.h"
 #include "Application/App_Remote/App_Remote.h"
 
@@ -28,6 +30,10 @@ bool Global_Init_Finished = false;
 void InitTaskFunction(void *argument)
 {
     (void)argument;
+
+    //先准备BSP USB接收缓冲区，再启动CubeMX生成的USB CDC设备
+    USB_Init(NULL);
+    MX_USB_DEVICE_Init();
 
     //初始化差速底盘、四个M3508、PID和CAN2接收
     App_Chassis_Init();

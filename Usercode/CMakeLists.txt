@@ -17,7 +17,7 @@ set(USER_APP_SOURCES
 
 # FreeRTOS task source files
 set(USER_TASK_SOURCES
-    Handsome_Car_Task/Handsome_Car_Task.c
+    Handsome_Car_Task/Handsome_Car_Task.cpp
 )
 
 # Combine application and task sources into one list.
@@ -27,8 +27,8 @@ set(USERCODE_SOURCES
 )
 
 # Add Usercode sources directly to the final ELF target.
-# Direct integration ensures that InitTaskFunction and MainTaskFunction in
-# Handsome_Car_Task.c override CubeMX's weak implementations in freertos.c.
+# Direct integration ensures that InitTaskFunction, MainTaskFunction and
+# USBTaskFunction in Handsome_Car_Task.cpp override CubeMX's weak implementations.
 if(USERCODE_SOURCES)
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ${USERCODE_SOURCES}

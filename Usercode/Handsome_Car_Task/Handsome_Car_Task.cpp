@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    Handsome_Car_Task.c
+  * @file    Handsome_Car_Task.cpp
   * @brief   Handsome_Car任务层
   * @author  yxn
   ******************************************************************************
@@ -10,7 +10,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Handsome_Car_Task.h"
 
-#include <stdbool.h>
 #include "cmsis_os2.h"
 #include "usb_device.h"
 #include "Application/App_Chassis/App_Chassis.h"
@@ -18,7 +17,10 @@
 #include "Application/App_Vision/App_Vision.h"
 
 //USART和USB接收回调仅在全部App初始化完成后才向上层分发数据
+extern "C"
+{
 bool Global_Init_Finished = false;
+}
 
 /**
  * @brief 工程初始化任务
@@ -27,12 +29,12 @@ bool Global_Init_Finished = false;
  *
  * @param argument FreeRTOS任务参数，本任务不使用
  */
-void InitTaskFunction(void *argument)
+extern "C" void InitTaskFunction(void *argument)
 {
     (void)argument;
 
     //先注册Vision回调并准备BSP USB接收缓冲区，再启动USB CDC设备
-    App_Vision_Init();
+    Vision.Init();
     MX_USB_DEVICE_Init();
 
     //初始化差速底盘、四个M3508、PID和CAN2接收
@@ -50,11 +52,11 @@ void InitTaskFunction(void *argument)
 /**
  * @brief 工程主周期任务
  *
- * 初始化完成后，每1ms刷新一次DR16和底盘控制状态。
+ * 初始化完成后，每1ms刷新一次DR16、底盘控制和Vision在线状态。
  *
  * @param argument FreeRTOS任务参数，本任务不使用
  */
-void MainTaskFunction(void *argument)
+extern "C" void MainTaskFunction(void *argument)
 {
     (void)argument;
 
@@ -72,6 +74,38 @@ void MainTaskFunction(void *argument)
 
         //刷新底盘反馈、Debug模式和电机控制输出
         App_Chassis_Update();
+
+        //Vision接收频率统计和离线检测固定按1ms周期运行
+        Vision.USB_Offline_Detection_1ms(1U);
+
+        osDelay(1U);
+    }
+}
+
+/**
+ * @brief USB数据发送任务
+ *
+ * 初始化完成后，每1ms将Temp自增一次并通过Vision发送。
+ *
+ * @param argument FreeRTOS任务参数，本任务不使用
+ */
+extern "C" void USBTaskFunction(void *argument)
+{
+    uint32_t Temp = 0U;
+
+    (void)argument;
+
+    for (;;)
+    {
+        if (!Global_Init_Finished)
+        {
+            osDelay(1U);
+            continue;
+        }
+
+        ++Temp;
+        Vision.Set_Transmit_Temp(Temp);
+        Vision.USB_Transmit();
         osDelay(1U);
     }
 }

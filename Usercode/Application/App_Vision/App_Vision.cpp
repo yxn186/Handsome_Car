@@ -13,91 +13,134 @@
 #include <string.h>
 #include "bsp_usb.h"
 
-/* Private constants ---------------------------------------------------------*/
-
-static constexpr uint8_t App_Vision_Frame_Header = 0xAAU;
-static constexpr uint8_t App_Vision_Frame_Tail = 0x55U;
-
-/* Private types -------------------------------------------------------------*/
-
-#pragma pack(push, 1)
-typedef struct
-{
-    uint8_t Frame_Header;
-    uint8_t Frame_Tail;
-} App_Vision_RX_Frame_t;
-
-typedef struct
-{
-    uint8_t Frame_Header;
-    uint8_t Frame_Tail;
-} App_Vision_TX_Frame_t;
-#pragma pack(pop)
-
-static_assert(sizeof(App_Vision_RX_Frame_t) == 2U, "App_Vision RX frame size must be 2 bytes");
-static_assert(sizeof(App_Vision_TX_Frame_t) == 2U, "App_Vision TX frame size must be 2 bytes");
-
-typedef union
-{
-    App_Vision_RX_Frame_t Data;
-    uint8_t Raw[sizeof(App_Vision_RX_Frame_t)];
-} App_Vision_RX_Frame_u;
-
-typedef union
-{
-    App_Vision_TX_Frame_t Data;
-    uint8_t Raw[sizeof(App_Vision_TX_Frame_t)];
-} App_Vision_TX_Frame_u;
-
-/* Private variables ---------------------------------------------------------*/
-
-static App_Vision_RX_Frame_u App_Vision_Receive_Union = {};
-static App_Vision_TX_Frame_u App_Vision_Transmit_Union = {};
-
-/* Private functions ---------------------------------------------------------*/
+Class_Vision Vision;
 
 /**
  * @brief BSPUSB接收回调
  *
- * 当前协议只校验帧头和帧尾，暂不解析业务数据。
+ * 只接收完整的AA + uint32_t Temp + 55数据帧。
  */
-static void App_Vision_USB_Callback(uint8_t *Buffer, uint16_t Length)
+void Vision_USB_CallBack(uint8_t *Buffer, uint16_t Length)
 {
-    if ((Buffer == nullptr) || (Length != sizeof(App_Vision_Receive_Union.Raw)))
+    Class_Vision::Serial_RX_Frame_u Received_Frame = {};
+
+    Vision.RX_Length = Length;
+    Vision.RX_Should_Length = sizeof(Vision.Receive_Union.Raw);
+
+    if ((Buffer == nullptr) || (Length == 0U))
     {
         return;
     }
 
-    memcpy(App_Vision_Receive_Union.Raw, Buffer, sizeof(App_Vision_Receive_Union.Raw));
-
-    if ((App_Vision_Receive_Union.Data.Frame_Header != App_Vision_Frame_Header) ||
-        (App_Vision_Receive_Union.Data.Frame_Tail != App_Vision_Frame_Tail))
+    if (Length != sizeof(Vision.Receive_Union.Raw))
     {
         return;
     }
+
+    memcpy(Received_Frame.Raw, Buffer, sizeof(Received_Frame.Raw));
+
+    if ((Received_Frame.Data.Frame_Header != 0xAAU) ||
+        (Received_Frame.Data.Frame_Tail != 0x55U))
+    {
+        return;
+    }
+
+    Vision.Receive_Union = Received_Frame;
+
+    //有效帧使Vision上线，并更新接收数据和频率计数
+    Vision.Online_Time = HAL_GetTick();
+    Vision.Serial_Rx_Flag = true;
+    Vision.Online_State = true;
+    Vision.Rx_Count++;
+    Vision.Receive_Temp = Vision.Receive_Union.Data.Temp;
 }
-
-//============================== 对外接口 ==============================//
 
 /**
  * @brief 初始化视觉USB通信并注册接收回调
  */
-void App_Vision_Init(void)
+void Class_Vision::Init(void)
 {
-    memset(&App_Vision_Receive_Union, 0, sizeof(App_Vision_Receive_Union));
-    memset(&App_Vision_Transmit_Union, 0, sizeof(App_Vision_Transmit_Union));
+    memset(&Receive_Union, 0, sizeof(Receive_Union));
+    memset(&Transmit_Union, 0, sizeof(Transmit_Union));
 
-    USB_Init(App_Vision_USB_Callback);
+    Online_Time = 0U;
+    Serial_Rx_Flag = false;
+    Online_State = false;
+    Serial_Offline_Timer = 0U;
+    Serial_Offline_Count = 0U;
+
+    Receive_Temp = 0U;
+    Transmit_Temp = 0U;
+
+    Rx_Count = 0U;
+    Rx_Freq = 0.0f;
+    Freq_Sample_Timer = 0U;
+    RX_Length = 0U;
+    RX_Should_Length = 0U;
+
+    USB_Init(Vision_USB_CallBack);
 }
 
 /**
- * @brief 发送仅包含帧头和帧尾的视觉数据帧
+ * @brief 发送AA + uint32_t Temp + 55数据帧
  */
-void App_Vision_Transmit(void)
+void Class_Vision::USB_Transmit(void)
 {
-    App_Vision_Transmit_Union.Data.Frame_Header = App_Vision_Frame_Header;
-    App_Vision_Transmit_Union.Data.Frame_Tail = App_Vision_Frame_Tail;
+    Transmit_Union.Data.Frame_Header = 0xAAU;
+    Transmit_Union.Data.Temp = Transmit_Temp;
+    Transmit_Union.Data.Frame_Tail = 0x55U;
 
-    (void)USB_Transmit_Data(App_Vision_Transmit_Union.Raw,
-                            sizeof(App_Vision_Transmit_Union.Raw));
+    (void)USB_Transmit_Data(Transmit_Union.Raw, sizeof(Transmit_Union.Raw));
+}
+
+/**
+ * @brief 视觉USB在线检测，由1ms任务周期调用
+ */
+void Class_Vision::USB_Offline_Detection_1ms(uint32_t Task_Time)
+{
+    (void)Task_Time;
+
+    constexpr uint32_t Offline_Check_Period_ms = 100U;
+    constexpr uint8_t Offline_Check_Threshold = 10U;
+
+    //每1000ms统计一次有效帧接收频率
+    Freq_Sample_Timer++;
+    if (Freq_Sample_Timer >= 1000U)
+    {
+        Rx_Freq = static_cast<float>(Rx_Count);
+        Rx_Count = 0U;
+        Freq_Sample_Timer = 0U;
+    }
+
+    //本周期收到过有效数据时刷新在线状态
+    if (Serial_Rx_Flag)
+    {
+        Serial_Rx_Flag = false;
+        Serial_Offline_Timer = 0U;
+        Serial_Offline_Count = 0U;
+        Online_State = true;
+        return;
+    }
+
+    //每100ms累计一次离线计数，连续10次后判定离线
+    Serial_Offline_Timer++;
+    if (Serial_Offline_Timer < Offline_Check_Period_ms)
+    {
+        return;
+    }
+    Serial_Offline_Timer = 0U;
+
+    if (Serial_Offline_Count < Offline_Check_Threshold)
+    {
+        Serial_Offline_Count++;
+    }
+
+    if (Serial_Offline_Count < Offline_Check_Threshold)
+    {
+        return;
+    }
+
+    RX_Length = 0U;
+    Receive_Temp = 0U;
+    Online_State = false;
 }

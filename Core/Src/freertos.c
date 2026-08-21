@@ -52,7 +52,7 @@ osThreadId_t InitTaskHandle;
 const osThreadAttr_t InitTask_attributes = {
   .name = "InitTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityRealtime7,
 };
 /* Definitions for MainTask */
 osThreadId_t MainTaskHandle;
@@ -60,6 +60,13 @@ const osThreadAttr_t MainTask_attributes = {
   .name = "MainTask",
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityRealtime6,
+};
+/* Definitions for USBTask */
+osThreadId_t USBTaskHandle;
+const osThreadAttr_t USBTask_attributes = {
+  .name = "USBTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityRealtime5,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,6 +76,7 @@ const osThreadAttr_t MainTask_attributes = {
 
 void InitTaskFunction(void *argument);
 void MainTaskFunction(void *argument);
+void USBTaskFunction(void *argument);
 
 extern void MX_USB_DEVICE_Init(void);
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -105,6 +113,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of MainTask */
   MainTaskHandle = osThreadNew(MainTaskFunction, NULL, &MainTask_attributes);
+
+  /* creation of USBTask */
+  USBTaskHandle = osThreadNew(USBTaskFunction, NULL, &USBTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -152,6 +163,24 @@ __weak void MainTaskFunction(void *argument)
     osDelay(1);
   }
   /* USER CODE END MainTaskFunction */
+}
+
+/* USER CODE BEGIN Header_USBTaskFunction */
+/**
+* @brief Function implementing the USBTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_USBTaskFunction */
+__weak void USBTaskFunction(void *argument)
+{
+  /* USER CODE BEGIN USBTaskFunction */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END USBTaskFunction */
 }
 
 /* Private application code --------------------------------------------------*/

@@ -13,11 +13,11 @@
 #include <stdbool.h>
 #include "cmsis_os2.h"
 #include "usb_device.h"
-#include "bsp_usb.h"
 #include "Application/App_Chassis/App_Chassis.h"
 #include "Application/App_Remote/App_Remote.h"
+#include "Application/App_Vision/App_Vision.h"
 
-//USART接收回调仅在全部App初始化完成后才向上层分发数据
+//USART和USB接收回调仅在全部App初始化完成后才向上层分发数据
 bool Global_Init_Finished = false;
 
 /**
@@ -31,8 +31,8 @@ void InitTaskFunction(void *argument)
 {
     (void)argument;
 
-    //先准备BSP USB接收缓冲区，再启动CubeMX生成的USB CDC设备
-    USB_Init(NULL);
+    //先注册Vision回调并准备BSP USB接收缓冲区，再启动USB CDC设备
+    App_Vision_Init();
     MX_USB_DEVICE_Init();
 
     //初始化差速底盘、四个M3508、PID和CAN2接收
@@ -41,7 +41,7 @@ void InitTaskFunction(void *argument)
     //初始化DR16和USART3 DMA接收
     App_Remote_Init();
 
-    //允许USART接收回调向DR16对象分发数据
+    //允许USART和USB接收回调向上层分发数据
     Global_Init_Finished = true;
 
     osThreadExit();

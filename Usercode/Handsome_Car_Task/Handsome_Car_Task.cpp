@@ -13,6 +13,7 @@
 #include "cmsis_os2.h"
 #include "usb_device.h"
 #include "Application/App_Chassis/App_Chassis.h"
+#include "Application/App_Command/App_Command.h"
 #include "Application/App_Remote/App_Remote.h"
 #include "Application/App_Vision/App_Vision.h"
 
@@ -43,6 +44,9 @@ extern "C" void InitTaskFunction(void *argument)
     //初始化DR16和USART3 DMA接收
     App_Remote_Init();
 
+    //初始化遥控命令状态，默认底盘无力
+    App_Command_Init();
+
     //允许USART和USB接收回调向上层分发数据
     Global_Init_Finished = true;
 
@@ -71,6 +75,9 @@ extern "C" void MainTaskFunction(void *argument)
 
         //先更新遥控数据，便于后续控制层直接读取当前周期状态
         App_Remote_Update();
+
+        //根据遥控器在线状态、左拨杆和左摇杆刷新底盘目标
+        App_Command_Update();
 
         //刷新底盘反馈、Debug模式和电机控制输出
         App_Chassis_Update();

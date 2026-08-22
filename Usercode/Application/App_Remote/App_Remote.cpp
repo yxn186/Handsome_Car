@@ -53,6 +53,8 @@ void App_Remote_Update(void)
         Remote_Last_Alive_Detection_Time = Now_ms;
         Remote_DR16.Task_100ms_Alive_Detection();
     }
+
+    
 }
 
 /**

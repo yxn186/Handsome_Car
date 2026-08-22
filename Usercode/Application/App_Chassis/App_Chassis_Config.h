@@ -26,23 +26,23 @@ extern "C" {
 #define App_Chassis_Wheel_Motor_Count                                     4U
 
 //M3508电机ID配置，范围1~8
-#define Wheel_Motor_0_ID                                                  1U
+#define Wheel_Motor_0_ID                                                  3U
 #define Wheel_Motor_1_ID                                                  2U
-#define Wheel_Motor_2_ID                                                  3U
-#define Wheel_Motor_3_ID                                                  4U
+#define Wheel_Motor_2_ID                                                  4U
+#define Wheel_Motor_3_ID                                                  1U
 
 //电机方向配置，1为正向，-1为反向
 //方向会同时作用于速度反馈和PID输出，使PID内部始终使用底盘统一方向
 #define Wheel_Motor_0_Direction                                           1
 #define Wheel_Motor_1_Direction                                           1
-#define Wheel_Motor_2_Direction                                           1
-#define Wheel_Motor_3_Direction                                           1
+#define Wheel_Motor_2_Direction                                           -1
+#define Wheel_Motor_3_Direction                                           -1
 
 //============================== 底盘参数 ==============================//
 
 #define App_Chassis_b                                                     0.26146f  //旋转中心到左、右轮中心的横向距离，单位m
-#define App_Chassis_Wheel_Radius                                          0.22f     //车轮半径，单位m
-#define App_Chassis_Max_Wheel_Motor_Linear_Speed                          20.0f     //单轮最大线速度，单位m/s
+#define App_Chassis_Wheel_Radius                                          0.12f     //车轮半径，单位m
+#define App_Chassis_Max_Wheel_Motor_Linear_Speed                          7.0f     //单轮最大线速度，单位m/s
 
 //============================== CAN配置 ==============================//
 
@@ -60,16 +60,16 @@ extern "C" {
 //============================== PID配置 ==============================//
 
 //M3508轮电机速度环PID，初始值全部为0，实车调试前按机械参数填写
-#define Wheel_Motor_PID_Kp_s                                              0.0f
-#define Wheel_Motor_PID_Ki_s                                              0.0f
+#define Wheel_Motor_PID_Kp_s                                              600.0f
+#define Wheel_Motor_PID_Ki_s                                              0.70f
 #define Wheel_Motor_PID_Kd_s                                              0.0f
-#define Wheel_Motor_PID_ErrorInt_High_s                                   0.0f
-#define Wheel_Motor_PID_ErrorInt_Low_s                                    0.0f
+#define Wheel_Motor_PID_ErrorInt_High_s                                   3000.0f
+#define Wheel_Motor_PID_ErrorInt_Low_s                                    -3000.0f
 #define Wheel_Motor_PID_Integral_Stop_Near_Zero_Enable_s                  0U
 #define Wheel_Motor_PID_Integral_Stop_Target_Abs_Threshold_s              0.0f
 #define Wheel_Motor_PID_Integral_Stop_Error_Abs_Threshold_s               0.0f
-#define Wheel_Motor_PID_Out_High                                          0.0f
-#define Wheel_Motor_PID_Out_Low                                           0.0f
+#define Wheel_Motor_PID_Out_High                                          10000.0f
+#define Wheel_Motor_PID_Out_Low                                           -10000.0f
 
 #ifdef __cplusplus
 }

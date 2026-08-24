@@ -84,7 +84,7 @@ void App_Command_Update(void)
             float Speed_X_mps =
                 App_Remote_Get_Left_Y() * App_Command_Remote_Max_Speed_X_mps;
             float W_Z_radps =
-                -App_Remote_Get_Left_X() * App_Command_Remote_Max_W_Z_radps;
+                -App_Remote_Get_Right_X() * App_Command_Remote_Max_W_Z_radps;
 
             App_Chassis_Set_Target(Speed_X_mps, W_Z_radps);
             break;

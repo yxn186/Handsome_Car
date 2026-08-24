@@ -21,18 +21,20 @@ class Class_Vision
 protected:
     friend void Vision_USB_CallBack(uint8_t *Buffer, uint16_t Length);
 
-    //接收帧：帧头 + Temp + 帧尾
+    //接收帧：帧头 + 底盘速度 + 拍照使能 + 帧尾
 #pragma pack(push, 1)
     typedef struct
     {
         uint8_t Frame_Header;
-        uint32_t Temp;
+        float Chassis_Vx;
+        float Chassis_Wz;
+        bool Capture_Enable;
         uint8_t Frame_Tail;
     } Serial_RX_Frame_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(Serial_RX_Frame_t) == 6U,
-                  "Vision RX frame size must be 6 bytes");
+    static_assert(sizeof(Serial_RX_Frame_t) == 11U,
+                  "Vision RX frame size must be 11 bytes");
 
     typedef union
     {
@@ -71,7 +73,9 @@ protected:
     uint8_t Serial_Offline_Count = 0U;
 
     //业务数据
-    uint32_t Receive_Temp = 0U;
+    float Receive_Chassis_Vx = 0.0f;
+    float Receive_Chassis_Wz = 0.0f;
+    bool Receive_Capture_Enable = false;
     uint32_t Transmit_Temp = 0U;
 
     //接收频率统计
@@ -102,7 +106,9 @@ public:
     bool Get_Online_State(void) const { return Online_State; }
     float Get_Rx_Freq(void) const { return Rx_Freq; }
 
-    uint32_t Get_Receive_Temp(void) const { return Receive_Temp; }
+    float Get_Receive_Chassis_Vx(void) const { return Receive_Chassis_Vx; }
+    float Get_Receive_Chassis_Wz(void) const { return Receive_Chassis_Wz; }
+    bool Get_Receive_Capture_Enable(void) const { return Receive_Capture_Enable; }
     void Set_Transmit_Temp(uint32_t Temp) { Transmit_Temp = Temp; }
 };
 

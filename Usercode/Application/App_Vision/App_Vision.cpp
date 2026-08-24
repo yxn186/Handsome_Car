@@ -18,7 +18,7 @@ Class_Vision Vision;
 /**
  * @brief BSPUSB接收回调
  *
- * 只接收完整的AA + uint32_t Temp + 55数据帧。
+ * 只接收完整的AA + 底盘速度 + 拍照使能 + 55数据帧。
  */
 void Vision_USB_CallBack(uint8_t *Buffer, uint16_t Length)
 {
@@ -52,7 +52,9 @@ void Vision_USB_CallBack(uint8_t *Buffer, uint16_t Length)
     Vision.Serial_Rx_Flag = true;
     Vision.Online_State = true;
     Vision.Rx_Count++;
-    Vision.Receive_Temp = Vision.Receive_Union.Data.Temp;
+    Vision.Receive_Chassis_Vx = Vision.Receive_Union.Data.Chassis_Vx;
+    Vision.Receive_Chassis_Wz = Vision.Receive_Union.Data.Chassis_Wz;
+    Vision.Receive_Capture_Enable = Vision.Receive_Union.Data.Capture_Enable;
 }
 
 /**
@@ -69,7 +71,9 @@ void Class_Vision::Init(void)
     Serial_Offline_Timer = 0U;
     Serial_Offline_Count = 0U;
 
-    Receive_Temp = 0U;
+    Receive_Chassis_Vx = 0.0f;
+    Receive_Chassis_Wz = 0.0f;
+    Receive_Capture_Enable = false;
     Transmit_Temp = 0U;
 
     Rx_Count = 0U;
@@ -141,6 +145,8 @@ void Class_Vision::USB_Offline_Detection_1ms(uint32_t Task_Time)
     }
 
     RX_Length = 0U;
-    Receive_Temp = 0U;
+    Receive_Chassis_Vx = 0.0f;
+    Receive_Chassis_Wz = 0.0f;
+    Receive_Capture_Enable = false;
     Online_State = false;
 }

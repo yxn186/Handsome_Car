@@ -16,6 +16,8 @@
 #include "bsp_can.h"
 #include "bxcan_adapter.h"
 #include "can.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 //============================== Debug变量 ==============================//
 
@@ -59,6 +61,8 @@ static volatile uint8_t Wheel_Motor_Feedback_Initialized[App_Chassis_Wheel_Motor
 //每个电机和全部电机的在线状态
 static uint8_t Wheel_Motor_Online[App_Chassis_Wheel_Motor_Count] = {0U};
 static volatile uint8_t All_Motors_Online = 0U;
+static float Chassis_Current_Speed_X_mps = 0.0f;
+static float Chassis_Current_W_Z_radps = 0.0f;
 
 //正常模式目标和最后一次目标刷新时间
 static volatile float Chassis_Target_Speed_X = 0.0f;
@@ -161,6 +165,8 @@ static void App_Chassis_Force_Zero_Output(void)
  */
 static void App_Chassis_Update_State(uint32_t Now_ms)
 {
+    float Wheel_Linear_Speed[App_Chassis_Wheel_Motor_Count] = {0.0f};
+
     All_Motors_Online = 1U;
 
     for (uint8_t i = 0U; i < App_Chassis_Wheel_Motor_Count; i++)
@@ -179,11 +185,31 @@ static void App_Chassis_Update_State(uint32_t Now_ms)
         //反馈和输出使用同一个方向修正，PID内部统一使用底盘正方向
         float Wheel_Current_Angular_Speed =
             Wheel_Motor[i].Get_AngleSpeed() * Wheel_Motor_Direction[i];
+        Wheel_Linear_Speed[i] = Wheel_Current_Angular_Speed * App_Chassis_Wheel_Radius;
         Wheel_Motor_PID[i].Set_Current_Speed(Wheel_Current_Angular_Speed);
         DifferentialWheel_Chassis_Calculation.Set_Current_Wheel_Motor_Data(
             i,
             Wheel_Current_Angular_Speed);
     }
+
+    taskENTER_CRITICAL();
+    if (All_Motors_Online != 0U)
+    {
+        float Left_Linear_Speed =
+            (Wheel_Linear_Speed[0] + Wheel_Linear_Speed[1]) * 0.5f;
+        float Right_Linear_Speed =
+            (Wheel_Linear_Speed[2] + Wheel_Linear_Speed[3]) * 0.5f;
+
+        Chassis_Current_Speed_X_mps = (Left_Linear_Speed + Right_Linear_Speed) * 0.5f;
+        Chassis_Current_W_Z_radps =
+            (Right_Linear_Speed - Left_Linear_Speed) / (2.0f * App_Chassis_b);
+    }
+    else
+    {
+        Chassis_Current_Speed_X_mps = 0.0f;
+        Chassis_Current_W_Z_radps = 0.0f;
+    }
+    taskEXIT_CRITICAL();
 }
 
 /**
@@ -445,4 +471,20 @@ void App_Chassis_No_Power(void)
 uint8_t App_Chassis_Get_All_Motors_Online(void)
 {
     return All_Motors_Online;
+}
+
+/**
+ * @brief 获取由四个轮电机反馈计算出的当前底盘速度
+ */
+void App_Chassis_Get_Current_Velocity(float *Speed_X_mps, float *W_Z_radps)
+{
+    if ((Speed_X_mps == nullptr) || (W_Z_radps == nullptr))
+    {
+        return;
+    }
+
+    taskENTER_CRITICAL();
+    *Speed_X_mps = Chassis_Current_Speed_X_mps;
+    *W_Z_radps = Chassis_Current_W_Z_radps;
+    taskEXIT_CRITICAL();
 }

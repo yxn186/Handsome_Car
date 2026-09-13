@@ -14,6 +14,7 @@
 #include "usb_device.h"
 #include "Application/App_Chassis/App_Chassis.h"
 #include "Application/App_Command/App_Command.h"
+#include "Application/App_Light/App_Light.h"
 #include "Application/App_Remote/App_Remote.h"
 #include "Application/App_Vision/App_Vision.h"
 
@@ -40,6 +41,9 @@ extern "C" void InitTaskFunction(void *argument)
 
     //初始化差速底盘、四个M3508、PID和CAN2接收
     App_Chassis_Init();
+
+    //初始化巡检灯控，默认关闭PE11和PE13两路灯
+    App_Light_Init();
 
     //初始化DR16和USART3 DMA接收
     App_Remote_Init();
@@ -98,8 +102,6 @@ extern "C" void MainTaskFunction(void *argument)
  */
 extern "C" void USBTaskFunction(void *argument)
 {
-    uint32_t Temp = 0U;
-
     (void)argument;
 
     for (;;)
@@ -110,9 +112,11 @@ extern "C" void USBTaskFunction(void *argument)
             continue;
         }
 
-        ++Temp;
-        Vision.Set_Transmit_Temp(Temp);
-        Vision.USB_Transmit();
+        float Chassis_Vx = 0.0f;
+        float Chassis_Wz = 0.0f;
+
+        App_Chassis_Get_Current_Velocity(&Chassis_Vx, &Chassis_Wz);
+        Vision.USB_Transmit(App_Light_Get_Capture_Done(), Chassis_Vx, Chassis_Wz);
         osDelay(1U);
     }
 }

@@ -93,6 +93,14 @@ void App_Chassis_No_Power(void);
  */
 uint8_t App_Chassis_Get_All_Motors_Online(void);
 
+/**
+ * @brief 获取由四个轮电机反馈计算出的当前底盘速度
+ *
+ * @param Speed_X_mps 前进方向线速度，单位m/s
+ * @param W_Z_radps 逆时针角速度，单位rad/s
+ */
+void App_Chassis_Get_Current_Velocity(float *Speed_X_mps, float *W_Z_radps);
+
 #ifdef __cplusplus
 }
 #endif

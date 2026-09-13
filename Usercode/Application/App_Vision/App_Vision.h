@@ -28,7 +28,7 @@ protected:
         uint8_t Frame_Header;
         float Chassis_Vx;
         float Chassis_Wz;
-        bool Capture_Enable;
+        uint8_t Capture_Enable;
         uint8_t Frame_Tail;
     } Serial_RX_Frame_t;
 #pragma pack(pop)
@@ -44,18 +44,20 @@ protected:
 
     Serial_RX_Frame_u Receive_Union = {};
 
-    //发送帧：帧头 + Temp + 帧尾
+    //发送帧：帧头 + 拍照完成 + 实际底盘速度 + 帧尾
 #pragma pack(push, 1)
     typedef struct
     {
         uint8_t Frame_Header;
-        uint32_t Temp;
+        uint8_t Capture_Done;
+        float Chassis_Vx;
+        float Chassis_Wz;
         uint8_t Frame_Tail;
     } Serial_TX_Frame_t;
 #pragma pack(pop)
 
-    static_assert(sizeof(Serial_TX_Frame_t) == 6U,
-                  "Vision TX frame size must be 6 bytes");
+    static_assert(sizeof(Serial_TX_Frame_t) == 11U,
+                  "Vision TX frame size must be 11 bytes");
 
     typedef union
     {
@@ -76,7 +78,8 @@ protected:
     float Receive_Chassis_Vx = 0.0f;
     float Receive_Chassis_Wz = 0.0f;
     bool Receive_Capture_Enable = false;
-    uint32_t Transmit_Temp = 0U;
+    uint32_t Navigation_Command_Last_Update_Time = 0U;
+    bool Navigation_Command_Initialized = false;
 
     //接收频率统计
     uint16_t Rx_Count = 0U;
@@ -92,9 +95,9 @@ public:
     void Init(void);
 
     /**
-     * @brief 发送视觉数据帧
+     * @brief 发送电控上行状态帧
      */
-    void USB_Transmit(void);
+    void USB_Transmit(bool Capture_Done, float Chassis_Vx, float Chassis_Wz);
 
     /**
      * @brief 视觉USB在线检测，由1ms任务周期调用
@@ -106,10 +109,17 @@ public:
     bool Get_Online_State(void) const { return Online_State; }
     float Get_Rx_Freq(void) const { return Rx_Freq; }
 
-    float Get_Receive_Chassis_Vx(void) const { return Receive_Chassis_Vx; }
-    float Get_Receive_Chassis_Wz(void) const { return Receive_Chassis_Wz; }
-    bool Get_Receive_Capture_Enable(void) const { return Receive_Capture_Enable; }
-    void Set_Transmit_Temp(uint32_t Temp) { Transmit_Temp = Temp; }
+    /**
+     * @brief 获取最新导航命令及其新鲜度
+     *
+     * @param Chassis_Vx 前进方向速度，单位m/s
+     * @param Chassis_Wz 逆时针角速度，单位rad/s
+     * @param Capture_Enable 巡检灯控使能
+     * @return true 命令在底盘控制超时时间内有效
+     */
+    bool Get_Navigation_Command(float *Chassis_Vx,
+                                float *Chassis_Wz,
+                                bool *Capture_Enable) const;
 };
 
 extern Class_Vision Vision;

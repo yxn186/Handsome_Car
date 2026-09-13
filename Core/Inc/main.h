@@ -60,6 +60,11 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN Private defines */
 
+#define PHOTO_LIGHT_1_Pin GPIO_PIN_11
+#define PHOTO_LIGHT_1_GPIO_Port GPIOE
+#define PHOTO_LIGHT_2_Pin GPIO_PIN_13
+#define PHOTO_LIGHT_2_GPIO_Port GPIOE
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -11,7 +11,14 @@
 #include "App_Vision.h"
 
 #include <string.h>
+#include "FreeRTOS.h"
+#include "task.h"
 #include "bsp_usb.h"
+
+namespace
+{
+constexpr uint32_t Navigation_Command_Timeout_ms = 100U;
+}
 
 Class_Vision Vision;
 
@@ -40,7 +47,8 @@ void Vision_USB_CallBack(uint8_t *Buffer, uint16_t Length)
     memcpy(Received_Frame.Raw, Buffer, sizeof(Received_Frame.Raw));
 
     if ((Received_Frame.Data.Frame_Header != 0xAAU) ||
-        (Received_Frame.Data.Frame_Tail != 0x55U))
+        (Received_Frame.Data.Frame_Tail != 0x55U) ||
+        (Received_Frame.Data.Capture_Enable > 1U))
     {
         return;
     }
@@ -54,7 +62,9 @@ void Vision_USB_CallBack(uint8_t *Buffer, uint16_t Length)
     Vision.Rx_Count++;
     Vision.Receive_Chassis_Vx = Vision.Receive_Union.Data.Chassis_Vx;
     Vision.Receive_Chassis_Wz = Vision.Receive_Union.Data.Chassis_Wz;
-    Vision.Receive_Capture_Enable = Vision.Receive_Union.Data.Capture_Enable;
+    Vision.Receive_Capture_Enable = (Vision.Receive_Union.Data.Capture_Enable != 0U);
+    Vision.Navigation_Command_Last_Update_Time = Vision.Online_Time;
+    Vision.Navigation_Command_Initialized = true;
 }
 
 /**
@@ -74,7 +84,8 @@ void Class_Vision::Init(void)
     Receive_Chassis_Vx = 0.0f;
     Receive_Chassis_Wz = 0.0f;
     Receive_Capture_Enable = false;
-    Transmit_Temp = 0U;
+    Navigation_Command_Last_Update_Time = 0U;
+    Navigation_Command_Initialized = false;
 
     Rx_Count = 0U;
     Rx_Freq = 0.0f;
@@ -86,15 +97,45 @@ void Class_Vision::Init(void)
 }
 
 /**
- * @brief 发送AA + uint32_t Temp + 55数据帧
+ * @brief 发送AA + capture_done + 实际底盘速度 + 55数据帧
  */
-void Class_Vision::USB_Transmit(void)
+void Class_Vision::USB_Transmit(bool Capture_Done, float Chassis_Vx, float Chassis_Wz)
 {
     Transmit_Union.Data.Frame_Header = 0xAAU;
-    Transmit_Union.Data.Temp = Transmit_Temp;
+    Transmit_Union.Data.Capture_Done = Capture_Done ? 1U : 0U;
+    Transmit_Union.Data.Chassis_Vx = Chassis_Vx;
+    Transmit_Union.Data.Chassis_Wz = Chassis_Wz;
     Transmit_Union.Data.Frame_Tail = 0x55U;
 
     (void)USB_Transmit_Data(Transmit_Union.Raw, sizeof(Transmit_Union.Raw));
+}
+
+/**
+ * @brief 获取最新导航命令及其新鲜度
+ */
+bool Class_Vision::Get_Navigation_Command(float *Chassis_Vx,
+                                          float *Chassis_Wz,
+                                          bool *Capture_Enable) const
+{
+    if ((Chassis_Vx == nullptr) || (Chassis_Wz == nullptr) ||
+        (Capture_Enable == nullptr))
+    {
+        return false;
+    }
+
+    bool Command_Fresh = false;
+    uint32_t Now_ms = HAL_GetTick();
+
+    taskENTER_CRITICAL();
+    *Chassis_Vx = Receive_Chassis_Vx;
+    *Chassis_Wz = Receive_Chassis_Wz;
+    *Capture_Enable = Receive_Capture_Enable;
+    Command_Fresh = Navigation_Command_Initialized &&
+                    ((Now_ms - Navigation_Command_Last_Update_Time) <=
+                     Navigation_Command_Timeout_ms);
+    taskEXIT_CRITICAL();
+
+    return Command_Fresh;
 }
 
 /**
@@ -144,9 +185,13 @@ void Class_Vision::USB_Offline_Detection_1ms(uint32_t Task_Time)
         return;
     }
 
+    taskENTER_CRITICAL();
     RX_Length = 0U;
     Receive_Chassis_Vx = 0.0f;
     Receive_Chassis_Wz = 0.0f;
     Receive_Capture_Enable = false;
+    Navigation_Command_Last_Update_Time = 0U;
+    Navigation_Command_Initialized = false;
+    taskEXIT_CRITICAL();
     Online_State = false;
 }
